@@ -1,0 +1,22 @@
+name: "IPM Init Workspace"
+description: "Creates a (new) IPM workspace within the given workingfolder."
+inputs:
+  working-directory:
+    description: "Directory where the command should run"
+    required: false
+    default: "."
+runs:
+  using: "composite"
+  steps:
+    - name: Verify prerequisites
+      shell: pwsh
+      run: |
+        if (-not (Get-Command ipm -ErrorAction SilentlyContinue)) {
+          Write-Error "ipm not found on PATH. Run setup-ipm first."
+        }
+
+    - name: Run ipm init
+      shell: pwsh
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        ipm init
