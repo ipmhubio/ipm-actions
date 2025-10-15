@@ -40,29 +40,25 @@ jobs:
           version: ${{ github.event.inputs.version }}
           alias-name: "ipm"
 
-      # 2) Init (non-interactive) - secrets ONLY via env
-      - name: IPM init
-        uses: ./.github/actions/ipm-init
-        with:
-          working-directory: ${{ github.event.inputs.working-directory }}
-        env:
-          # IMPORTANT: pass your secret as an environment variable
-          IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
-
-      # 3) Sync workspace (positionals built from package-names)
+      # Sync workspace (positionals built from package-names)
       - name: IPM sync
         uses: ./.github/actions/ipm-sync
         with:
-          working-directory: ${{ github.event.inputs.working-directory }}
+          working-directory: /workspaces/workspace1
           sync-mode: ${{ github.event.inputs.sync-mode }}
           package-names: ${{ github.event.inputs.package-names }}
         env:
           IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
 
-      # (Optional) Quick status check after sync
+      # Quick status check
       - name: IPM status
         uses: ./.github/actions/ipm-status
         with:
-          working-directory: ${{ github.event.inputs.working-directory }}
+          working-directory: /workspaces/workspace2
         env:
           IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
+
+      - name: IPM init
+        uses: ./.github/actions/ipm-init
+        with:
+          working-directory: /workspaces/workspace3

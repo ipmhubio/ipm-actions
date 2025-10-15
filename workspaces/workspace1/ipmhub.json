@@ -1,0 +1,10 @@
+{
+  "workingFolder": "packages",
+  "associations": [],
+  "packages": [
+    {
+      "name": "avm-bicep/storage-accounts",
+      "version": "0.27.1"
+    }
+  ]
+}

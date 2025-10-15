@@ -1,0 +1,10 @@
+{
+  "workingFolder": "packages",
+  "associations": [],
+  "packages": [
+    {
+      "name": "avm-bicep/virtual-networks",
+      "version": "0.5.3"
+    }
+  ]
+}
