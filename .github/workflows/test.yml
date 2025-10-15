@@ -44,7 +44,7 @@ jobs:
       - name: IPM sync
         uses: ./.github/actions/ipm-sync
         with:
-          working-directory: /workspaces/workspace1
+          working-directory: ./workspaces/workspace1
           sync-mode: ${{ github.event.inputs.sync-mode }}
           package-names: ${{ github.event.inputs.package-names }}
         env:
@@ -54,11 +54,11 @@ jobs:
       - name: IPM status
         uses: ./.github/actions/ipm-status
         with:
-          working-directory: /workspaces/workspace2
+          working-directory: ./workspaces/workspace2
         env:
           IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
 
       - name: IPM init
         uses: ./.github/actions/ipm-init
         with:
-          working-directory: /workspaces/workspace3
+          working-directory: ./workspaces/workspace3
