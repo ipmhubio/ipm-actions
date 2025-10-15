@@ -124,7 +124,10 @@ runs:
           if (-not $bin) { Get-ChildItem -Recurse $dest | Format-Table FullName; throw "ipm.exe not found after extraction." }
 
           $aliasPath = Join-Path $dest ("$alias.exe")
-          Copy-Item $bin.FullName $aliasPath -Force
+
+          if ($aliasPath -ne $bin.FullName) {
+            Copy-Item $bin.FullName $aliasPath -Force
+          }
         }
         else {
           $bin = Get-ChildItem -Path $dest -Recurse -File -Include ipm | Select-Object -First 1
@@ -132,7 +135,9 @@ runs:
           if (-not $bin) { Get-ChildItem -Recurse $dest | Format-Table FullName; throw "'ipm' binary not found after extraction." }
 
           $aliasPath = Join-Path $dest $alias
-          Copy-Item $bin.FullName $aliasPath -Force
+          if ($aliasPath -ne $bin.FullName) {
+            Copy-Item $bin.FullName $aliasPath -Force
+          }
           try { chmod +x $aliasPath } catch { }
         }
 
