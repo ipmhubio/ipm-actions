@@ -31,8 +31,6 @@ runs:
 
     - name: Verify prerequisites
       shell: pwsh
-      env:
-        IPM_CLIENT_SECRETS: ${{ env.IPM_CLIENT_SECRETS }}      
       run: |
         if (-not (Get-Command ipm -ErrorAction SilentlyContinue)) {
           Write-Error "ipm not found on PATH after setup attempt."
@@ -45,8 +43,6 @@ runs:
     - name: Run ipm init
       shell: pwsh
       working-directory: ${{ inputs.working-directory }}
-      env:
-        IPM_CLIENT_SECRETS: ${{ env.IPM_CLIENT_SECRETS }}
       run: |
         $ErrorActionPreference = 'Stop'
 
