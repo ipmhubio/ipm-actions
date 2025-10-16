@@ -1,0 +1,57 @@
+name: Test IPM Composite Actions with Auto Install
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Specific IPM version (without 'v'); empty = latest"
+        required: false
+        default: ""
+      working-directory:
+        description: "Directory to run IPM commands"
+        required: false
+        default: "."
+      sync-mode:
+        description: "Sync mode (Clean | KeepChangesOnly | KeepNewFilesOnly | KeepAllChanges)"
+        required: false
+        default: "KeepAllChanges"
+      package-names:
+        description: "Optional packages to sync (semicolon/comma/space separated)"
+        required: false
+        default: ""
+
+jobs:
+  test-ipm:
+    # Run on all three OSes; comment out those you don't need.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      # Checkout is optional unless your actions/commands need repo files.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Sync workspace (positionals built from package-names)
+      - name: IPM sync
+        uses: ./.github/actions/ipm-sync
+        with:
+          working-directory: ./workspaces/workspace1
+          sync-mode: ${{ github.event.inputs.sync-mode }}
+          package-names: ${{ github.event.inputs.package-names }}
+        env:
+          IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
+
+      # Quick status check
+      - name: IPM status
+        uses: ./.github/actions/ipm-status
+        with:
+          working-directory: ./workspaces/workspace2
+        env:
+          IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
+
+      - name: IPM init
+        uses: ./.github/actions/ipm-init
+        with:
+          working-directory: ./workspaces/workspace3
