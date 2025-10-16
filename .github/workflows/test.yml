@@ -1,6 +1,9 @@
 name: Test IPM Composite Actions
 
 on:
+  push:
+    branches-ignore:
+      - main
   workflow_dispatch:
     inputs:
       version:
@@ -37,7 +40,7 @@ jobs:
       - name: Setup IPM
         uses: ./.github/actions/ipm-setup
         with:
-          version: ${{ github.event.inputs.version }}
+          version: ${{ github.event.inputs.version || '' }}
           alias-name: "ipm"
 
       # Sync workspace (positionals built from package-names)
@@ -45,8 +48,8 @@ jobs:
         uses: ./.github/actions/ipm-sync
         with:
           working-directory: ./workspaces/workspace1
-          sync-mode: ${{ github.event.inputs.sync-mode }}
-          package-names: ${{ github.event.inputs.package-names }}
+          sync-mode: ${{ github.event.inputs.sync-mode || 'KeepAllChanges' }}
+          package-names: ${{ github.event.inputs.package-names || '' }}
         env:
           IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
 
