@@ -17,16 +17,37 @@ inputs:
     description: "Synchronization mode. Valid: Clean, KeepChangesOnly, KeepNewFilesOnly, KeepAllChanges."
     required: false
     default: "KeepAllChanges"
+  ipm-version:
+    description: "Specific IPM version (without 'v'); empty = latest"
+    required: false
+    default: ""
 runs:
   using: "composite"
   steps:
+    - name: Check if IPM is available
+      id: check-ipm
+      shell: pwsh
+      run: |
+        $ipmFound = Get-Command ipm -ErrorAction SilentlyContinue
+        if ($ipmFound) {
+          "available=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        } else {
+          "available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        }
+
+    - name: Setup IPM if not available
+      if: steps.check-ipm.outputs.available == 'false'
+      uses: ./.github/actions/ipm-setup
+      with:
+        version: ${{ inputs.ipm-version }}
+
     - name: Verify prerequisites
       shell: pwsh
       env:
         IPM_CLIENT_SECRETS: ${{ env.IPM_CLIENT_SECRETS }}      
       run: |
         if (-not (Get-Command ipm -ErrorAction SilentlyContinue)) {
-          Write-Error "ipm not found on PATH. Run setup-ipm first."
+          Write-Error "ipm not found on PATH after setup attempt."
         }
 
         if ([String]::IsNullOrEmpty($env:IPM_CLIENT_SECRETS)) {
