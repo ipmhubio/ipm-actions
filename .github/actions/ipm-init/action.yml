@@ -36,10 +36,6 @@ runs:
           Write-Error "ipm not found on PATH after setup attempt."
         }
 
-        if ([String]::IsNullOrEmpty($env:IPM_CLIENT_SECRETS)) {
-          Write-Error "No IPM Client Secrets have been passed through environment variables. Make sure that 'IPM_CLIENT_SECRETS' has a valid client secret."
-        }
-
     - name: Run ipm init
       shell: pwsh
       working-directory: ${{ inputs.working-directory }}
