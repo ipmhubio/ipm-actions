@@ -1,0 +1,8 @@
+/workspaces/workspace1/packages/
+/workspaces/workspace2/packages/virtual-networks/packages
+/workspaces/workspace2/packages/virtual-networks/subnet
+/workspaces/workspace2/packages/virtual-networks/virtual-network-peering
+/workspaces/workspace2/packages/virtual-networks/*.md
+/workspaces/workspace2/packages/virtual-networks/LICENSE.txt
+/workspaces/workspace2/packages/virtual-networks/main.bicep
+/workspaces/workspace2/packages/virtual-networks/ipmhub.json

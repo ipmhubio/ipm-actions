@@ -60,7 +60,7 @@ runs:
         if (-not [string]::IsNullOrWhiteSpace($single)) {
           $pkgArgs += @('--package', $single.Trim())
         }
-        else if (-not [string]::IsNullOrWhiteSpace($multiRaw)) {
+        elseif (-not [string]::IsNullOrWhiteSpace($multiRaw)) {
           $normalized = $multiRaw -replace ';', ' ' -replace ',', ' '
           $items = $normalized -split '\s+' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
           $pkgArgs += '--packages {0}' -f ($items -join " ")

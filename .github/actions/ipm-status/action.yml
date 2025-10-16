@@ -31,7 +31,7 @@ runs:
       env:
         IPM_CLIENT_SECRETS: ${{ env.IPM_CLIENT_SECRETS }}
       run: |
-         $ErrorActionPreference = 'Stop'
+        $ErrorActionPreference = 'Stop'
 
         # Build argument list
         $args = @('--non-interactive')
