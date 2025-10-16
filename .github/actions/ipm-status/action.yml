@@ -29,7 +29,7 @@ runs:
 
     - name: Setup IPM if not available
       if: steps.check-ipm.outputs.available == 'false'
-      uses: ipmhubio/ipm-actions/.github/actions/ipm-setup@v1
+      uses: ipmhubio/ipm-actionsdsf
       with:
         version: ${{ inputs.ipm-version }}
 
