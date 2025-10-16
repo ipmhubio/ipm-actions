@@ -1,6 +1,9 @@
 name: Test IPM Composite Actions with Auto Install
 
 on:
+  push:
+    branches-ignore:
+      - main
   workflow_dispatch:
     inputs:
       version:
