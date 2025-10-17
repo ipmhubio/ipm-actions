@@ -66,6 +66,6 @@ jobs:
       - name: IPM init specific version
         uses: ./.github/actions/ipm-init
         with:
-          working-directory: ./workspaces/workspace3
+          working-directory: ./workspaces/workspace4
           hide-banner: 'true'
           ipm-version: '0.12.0'
