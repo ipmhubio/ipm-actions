@@ -98,7 +98,7 @@ runs:
         $dest = Join-Path -Path $installRoot -ChildPath $versionKey
         if (-not (Test-Path -Path $dest)) { New-Item -ItemType Directory -Force -Path $dest | Out-Null }
 
-        $baseAlias   = '${{ inputs["alias-name"] }}'
+        $baseAlias   = '${{ inputs.alias-name }}'
         $perVersion  = ('${{ inputs.alias-per-version }}' -eq 'true')
         $aliasName   = if ($perVersion) { "$baseAlias-$versionKey" } else { $baseAlias }
 
