@@ -17,6 +17,10 @@ inputs:
     description: "Synchronization mode. Valid: Clean, KeepChangesOnly, KeepNewFilesOnly, KeepAllChanges."
     required: false
     default: "KeepAllChanges"
+  hide-banner:
+    description: "Hide the IPM CLI banner."
+    required: false
+    default: "false"    
   ipm-version:
     description: "Specific IPM version (without 'v'); empty = latest"
     required: false
@@ -53,6 +57,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         IPM_CLIENT_SECRETS: ${{ env.IPM_CLIENT_SECRETS }}
+        IPMHUBCLI_BANNER_DISABLED: ${{ inputs.hide-banner == 'true' || inputs.hide-banner == 'TRUE' }}
       run: |
         $ErrorActionPreference = 'Stop'
 

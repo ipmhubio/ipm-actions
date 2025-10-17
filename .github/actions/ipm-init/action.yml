@@ -5,6 +5,10 @@ inputs:
     description: "Directory where the command should run"
     required: false
     default: "."
+  hide-banner:
+    description: "Hide the IPM CLI banner."
+    required: false
+    default: "false"
   ipm-version:
     description: "Specific IPM version (without 'v'); empty = latest"
     required: false
@@ -33,6 +37,8 @@ runs:
     - name: Run ipm init
       shell: pwsh
       working-directory: ${{ inputs.working-directory }}
+      env:
+        IPMHUBCLI_BANNER_DISABLED: ${{ inputs.hide-banner == 'true' || inputs.hide-banner == 'TRUE' }}
       run: |
         $ErrorActionPreference = 'Stop'
 

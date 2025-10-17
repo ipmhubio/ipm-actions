@@ -2,15 +2,19 @@ name: "IPM Status Workspace"
 description: "Checks the status of an existing IPM workspace in the given workingfolder."
 inputs:
   working-directory:
-    description: "Directory where the command should run"
+    description: "Directory where the command should run."
     required: false
     default: "."
   package-name:
     description: "A single specific package name that should be synchronized."
     required: false
     default: ""
+  hide-banner:
+    description: "Hide the IPM CLI banner."
+    required: false
+    default: "false"
   ipm-version:
-    description: "Specific IPM version (without 'v'); empty = latest"
+    description: "Specific IPM version (without 'v'); empty = latest."
     required: false
     default: ""
 runs:
@@ -45,6 +49,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         IPM_CLIENT_SECRETS: ${{ env.IPM_CLIENT_SECRETS }}
+        IPMHUBCLI_BANNER_DISABLED: ${{ inputs.hide-banner == 'true' || inputs.hide-banner == 'TRUE' }}
       run: |
         $ErrorActionPreference = 'Stop'
 
