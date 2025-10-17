@@ -53,6 +53,13 @@ jobs:
           working-directory: ./workspaces/workspace2
         env:
           IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
+      - name: IPM status other version
+        uses: ./.github/actions/ipm-status
+        with:
+          working-directory: ./workspaces/workspace2
+          ipm-version: '0.10.0'
+        env:
+          IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
 
       - name: IPM init
         uses: ./.github/actions/ipm-init

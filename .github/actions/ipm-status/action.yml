@@ -28,7 +28,7 @@ runs:
         }
 
     - name: Setup IPM if not available
-      if: steps.check-ipm.outputs.available == 'false'
+      if: steps.check-ipm.outputs.available == 'false' || inputs.ipm-version != ''
       uses: ipmhubio/ipm-actions/.github/actions/ipm-setup@v1
       with:
         version: ${{ inputs.ipm-version }}
