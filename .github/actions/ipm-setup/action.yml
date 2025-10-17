@@ -22,7 +22,7 @@ runs:
         if ([string]::IsNullOrWhiteSpace($version)) {
           $root = 'https://github.com/ipmhubio/ipm/releases/latest/download'
         } else {
-          $root = "https://github.com/ipmhubio/ipm/releases/download/v$version"
+          $root = "https://github.com/ipmhubio/ipm/releases/download/$version"
         }
 
         $os = $env:RUNNER_OS             # Windows | Linux | macOS
