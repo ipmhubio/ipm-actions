@@ -20,16 +20,16 @@ inputs:
     default: "${{ runner.temp }}/ipm-bin"
 
 outputs:
-  bin-dir:
+  bin_dir:
     description: "Directory with the prepared binary"
-    value: ${{ steps.path.outputs['bin-dir'] }}
-  alias-path:
+    value: ${{ steps.path.outputs.bin_dir }}
+  alias_path:
     description: "Full path to the alias-binary"
-    value: ${{ steps.path.outputs['alias-path'] }}
+    value: ${{ steps.path.outputs.alias_path }}
   alias:
     description: "Alias-name that's on the PATH"
     value: ${{ steps.cfg.outputs.alias }}
-  versionKey:
+  version_key:
     description: "Normalized version key (like '1.2.3' or 'latest')"
     value: ${{ steps.cfg.outputs.versionKey }}
 
@@ -190,21 +190,17 @@ runs:
 
     # 4) Expose versioned dir on PATH (always). Last appended wins for identical alias names.
     - id: path
-      name: Expose on PATH
+      name: Expose on PATH and smoke test
       shell: pwsh
       run: |
         $ErrorActionPreference = 'Stop'
-        $dest  = '${{ steps.cfg.outputs.dest }}'
+        $dest = '${{ steps.cfg.outputs.dest }}'
         $aliasPath = '${{ steps.cfg.outputs.aliasPath }}'
 
-        if (-not (Test-Path -Path $aliasPath)) {
-          throw "Expected alias not found: $aliasPath"
-        }
+        if (-not (Test-Path -Path $aliasPath)) { throw "Expected alias not found: $aliasPath" }
 
         $dest | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
-
-        # Surface outputs for downstream steps
-        "bin-dir=$dest"       | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        "alias-path=$aliasPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "bin_dir=$dest" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "alias_path=$aliasPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         "alias=${{ steps.cfg.outputs.alias }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         "versionKey=${{ steps.cfg.outputs.versionKey }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8

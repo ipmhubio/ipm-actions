@@ -38,7 +38,7 @@ runs:
       run: |
         $ErrorActionPreference = 'Stop'
 
-        $ipm = '${{ steps.prep_ipm.outputs["alias-path"] }}'
+        $ipm = '${{ steps.prep_ipm.outputs.alias_path }}'
         if (-not (Test-Path -Path $ipm)) {
           Write-Error "IPM binary not found on: $ipm"
           return;
@@ -56,7 +56,7 @@ runs:
       run: |
         $ErrorActionPreference = 'Stop'
 
-        $ipm = '${{ steps.prep_ipm.outputs["alias-path"] }}'
+        $ipm = '${{ steps.prep_ipm.outputs.alias_path }}'
         # Validate sync mode
         $validModes = @('Clean','KeepChangesOnly','KeepNewFilesOnly','KeepAllChanges')
         $modeInput  = '${{ inputs.sync-mode }}'
