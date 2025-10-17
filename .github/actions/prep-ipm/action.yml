@@ -1,0 +1,210 @@
+name: "Setup IPM"
+description: "Downloads the IPM CLI for the specified OS/arch into a versioned dir and exposes it on PATH. Safe to run multiple times with different versions. Skips work if version already installed."
+
+inputs:
+  version:
+    description: "Specific IPM version (without 'v'); empty = latest"
+    required: false
+    default: ""
+  alias-name:
+    description: "Base alias to expose on PATH (e.g., 'ipm')"
+    required: false
+    default: "ipm"
+  alias-per-version:
+    description: "If true, alias becomes '<alias-name>-<versionKey>' so multiple versions can coexist on PATH without collisions."
+    required: false
+    default: "false"
+  install-root:
+    description: "Directory root used to cache installs across steps within the job."
+    required: false
+    default: "${{ runner.temp }}/ipm-bin"
+
+outputs:
+  bin-dir:
+    description: "Directory with the prepared binary"
+    value: ${{ steps.path.outputs['bin-dir'] }}
+  alias-path:
+    description: "Full path to the alias-binary"
+    value: ${{ steps.path.outputs['alias-path'] }}
+  alias:
+    description: "Alias-name that's on the PATH"
+    value: ${{ steps.cfg.outputs.alias }}
+  versionKey:
+    description: "Normalized version key (like '1.2.3' or 'latest')"
+    value: ${{ steps.cfg.outputs.versionKey }}
+
+runs:
+  using: "composite"
+  steps:
+    # 1) Resolve URL, paths, alias, and decide whether to skip
+    - id: cfg
+      name: Resolve config and existence check
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+
+        $version = '${{ inputs.version }}'
+        if ([string]::IsNullOrWhiteSpace($version)) {
+          $root = 'https://github.com/ipmhubio/ipm/releases/latest/download'
+          $versionKey = 'latest'
+        } else {
+          $root = "https://github.com/ipmhubio/ipm/releases/download/$version"
+          # Sanitize for paths and aliases
+          $versionKey = ($version -replace '[^0-9A-Za-z._-]', '_')
+        }
+
+        $os   = $env:RUNNER_OS           # Windows | Linux | macOS
+        $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower()
+
+        switch ($arch) {
+          'x86'   { $archNorm = 'x86' }
+          'x64'   { $archNorm = 'x64' }
+          'arm'   { $archNorm = 'arm' }
+          'arm64' { $archNorm = 'arm64' }
+          default { throw "Unsupported architecture: $arch" }
+        }
+
+        switch ($os) {
+          'Windows' {
+            switch ($archNorm) {
+              'x86'   { $file = 'ipm-win-x86-full.zip' }
+              'x64'   { $file = 'ipm-win-x64-full.zip' }
+              'arm64' { $file = 'ipm-win-arm64-full.zip' }
+              default { throw "Unsupported Windows arch: $archNorm" }
+            }
+          }
+          'Linux' {
+            switch ($archNorm) {
+              'x64'   { $file = 'ipm-linux-x64-full.tar.gz' }
+              'arm'   { $file = 'ipm-linux-arm-full.tar.gz' }
+              'arm64' { $file = 'ipm-linux-arm64-full.tar.gz' }
+              default { throw "Unsupported Linux arch: $archNorm" }
+            }
+          }
+          'macOS' {
+            switch ($archNorm) {
+              'x64'   { $file = 'ipm-osx-x64-full.zip' }
+              'arm64' { $file = 'ipm-osx-arm64-full.zip' }
+              default { throw "Unsupported macOS arch: $archNorm" }
+            }
+          }
+          default { throw "Unsupported OS: $os" }
+        }
+
+        $url = "$root/$file"
+
+        $installRoot = '${{ inputs.install-root }}'
+        if (-not $installRoot) { $installRoot = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'ipm-bin' }
+        $dest = Join-Path -Path $installRoot -ChildPath $versionKey
+        if (-not (Test-Path -Path $dest)) { New-Item -ItemType Directory -Force -Path $dest | Out-Null }
+
+        $baseAlias   = '${{ inputs["alias-name"] }}'
+        $perVersion  = ('${{ inputs.alias-per-version }}' -eq 'true')
+        $aliasName   = if ($perVersion) { "$baseAlias-$versionKey" } else { $baseAlias }
+
+        $exeExt = if ($os -eq 'Windows') { '.exe' } else { '' }
+        $aliasPath = Join-Path -Path $dest -ChildPath ("$aliasName$exeExt")
+
+        # Determine if already installed (alias present)
+        $installed = Test-Path -Path $aliasPath
+
+        # Outputs used by later steps
+        "url=$url"         | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "os=$os"           | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "dest=$dest"       | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "alias=$aliasName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "aliasPath=$aliasPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "versionKey=$versionKey" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "skip=$($installed.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+    # 2) Download IPM binary (only if not installed)
+    - id: dl
+      if: steps.cfg.outputs.skip != 'true'
+      name: Download IPM
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $url = '${{ steps.cfg.outputs.url }}'
+        Write-Host "Downloading: $url"
+
+        $tmp  = Join-Path -Path $env:RUNNER_TEMP -ChildPath ("ipmcli_${{ steps.cfg.outputs.versionKey }}")
+        New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+
+        $pkg = Join-Path -Path $tmp -ChildPath 'pkg'
+        Invoke-WebRequest -Uri $url -OutFile $pkg
+
+        "pkg=$pkg" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+    # 3) Extract and alias (only if not installed)
+    - id: install
+      if: steps.cfg.outputs.skip != 'true'
+      name: Extract and stage
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $os    = '${{ steps.cfg.outputs.os }}'
+        $alias = '${{ steps.cfg.outputs.alias }}'
+        $url   = '${{ steps.cfg.outputs.url }}'
+        $pkg   = '${{ steps.dl.outputs.pkg }}'
+        $dest  = '${{ steps.cfg.outputs.dest }}'
+        $aliasPath = '${{ steps.cfg.outputs.aliasPath }}'
+
+        if (-not (Test-Path -Path $pkg)) { throw "Binary file not found at: $pkg" }
+
+        $isZip = $url.ToLower().EndsWith('.zip')
+        $isTgz = $url.ToLower().EndsWith('.tar.gz')
+
+        # Extract into a fresh temp dir and then stage into $dest
+        $stage = Join-Path -Path $dest -ChildPath '_stage'
+        if (Test-Path -Path $stage) { Remove-Item -Recurse -Force $stage }
+        New-Item -ItemType Directory -Force -Path $stage | Out-Null
+
+        if ($isZip) {
+          Expand-Archive -Path $pkg -DestinationPath $stage -Force
+        } elseif ($isTgz) {
+          tar -xzf $pkg -C $stage
+        } else {
+          throw "Unsupported archive type for URL: $url"
+        }
+
+        if ($os -eq 'Windows') {
+          $bin = Get-ChildItem -Path $stage -Recurse -File -Include ipm.exe | Select-Object -First 1
+          if (-not $bin) { $bin = Get-ChildItem -Path $stage -Recurse -File -Include *ipm*.exe | Select-Object -First 1 }
+          if (-not $bin) { Get-ChildItem -Recurse $stage | Format-Table FullName; throw "ipm.exe not found after extraction." }
+
+          if ($aliasPath -ne $bin.FullName) {
+            Copy-Item $bin.FullName $aliasPath -Force
+          }
+        }
+        else {
+          $bin = Get-ChildItem -Path $stage -Recurse -File -Include ipm | Select-Object -First 1
+          if (-not $bin) { $bin = Get-ChildItem -Path $stage -Recurse -File -Include *ipm* | Where-Object { $_.Name -match 'ipm$' } | Select-Object -First 1 }
+          if (-not $bin) { Get-ChildItem -Recurse $stage | Format-Table FullName; throw "'ipm' binary not found after extraction." }
+
+          if ($aliasPath -ne $bin.FullName) { Copy-Item $bin.FullName $aliasPath -Force }
+          try { chmod +x $aliasPath } catch { }
+        }
+
+        # Clean stage dir
+        if (Test-Path -Path $stage) { Remove-Item -Recurse -Force $stage }
+
+    # 4) Expose versioned dir on PATH (always). Last appended wins for identical alias names.
+    - id: path
+      name: Expose on PATH
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $dest  = '${{ steps.cfg.outputs.dest }}'
+        $aliasPath = '${{ steps.cfg.outputs.aliasPath }}'
+
+        if (-not (Test-Path -Path $aliasPath)) {
+          throw "Expected alias not found: $aliasPath"
+        }
+
+        $dest | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+        # Surface outputs for downstream steps
+        "bin-dir=$dest"       | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "alias-path=$aliasPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "alias=${{ steps.cfg.outputs.alias }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "versionKey=${{ steps.cfg.outputs.versionKey }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8

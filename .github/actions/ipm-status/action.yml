@@ -16,30 +16,24 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Check if IPM is available
-      id: check-ipm
-      shell: pwsh
-      run: |
-        $ipmFound = Get-Command ipm -ErrorAction SilentlyContinue
-        if ($ipmFound) {
-          "available=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        } else {
-          "available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        }
-
     - name: Setup IPM if not available
-      if: steps.check-ipm.outputs.available == 'false' || inputs.ipm-version != ''
-      uses: ipmhubio/ipm-actions/.github/actions/ipm-setup@v1
+      id: prep_ipm
+      uses: ./.github/actions/prep-ipm
       with:
         version: ${{ inputs.ipm-version }}
+        alias-per-version: 'true'
 
     - name: Verify prerequisites
       shell: pwsh
       env:
         IPM_CLIENT_SECRETS: ${{ env.IPM_CLIENT_SECRETS }}      
       run: |
-        if (-not (Get-Command ipm -ErrorAction SilentlyContinue)) {
-          Write-Error "ipm not found on PATH after setup attempt."
+        $ErrorActionPreference = 'Stop'
+
+        $ipm = '${{ steps.prep_ipm.outputs["alias-path"] }}'
+        if (-not (Test-Path -Path $ipm)) {
+          Write-Error "IPM binary not found on: $ipm"
+          return;
         }
 
         if ([String]::IsNullOrEmpty($env:IPM_CLIENT_SECRETS)) {
@@ -54,6 +48,7 @@ runs:
       run: |
         $ErrorActionPreference = 'Stop'
 
+        $ipm = '${{ steps.prep_ipm.outputs["alias-path"] }}'
         # Build argument list
         $args = @('--non-interactive')
 
@@ -68,7 +63,7 @@ runs:
 
         Write-Host "Starting IPM status with selected options..."
         if ($pkgArgs.Count -gt 0) {
-          ipm status @args @pkgArgs
+          & $ipm status @args @pkgArgs
         } else {
-          ipm status @args
+          & $ipm status @args
         }

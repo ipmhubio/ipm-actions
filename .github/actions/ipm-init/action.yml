@@ -12,28 +12,22 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Check if IPM is available
-      id: check-ipm
-      shell: pwsh
-      run: |
-        $ipmFound = Get-Command ipm -ErrorAction SilentlyContinue
-        if ($ipmFound) {
-          "available=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        } else {
-          "available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        }
-
     - name: Setup IPM if not available
-      if: steps.check-ipm.outputs.available == 'false'
-      uses: ipmhubio/ipm-actions/.github/actions/ipm-setup@v1
+      id: prep_ipm
+      uses: ./.github/actions/prep-ipm
       with:
         version: ${{ inputs.ipm-version }}
+        alias-per-version: 'true'
 
     - name: Verify prerequisites
       shell: pwsh
       run: |
-        if (-not (Get-Command ipm -ErrorAction SilentlyContinue)) {
-          Write-Error "ipm not found on PATH after setup attempt."
+        $ErrorActionPreference = 'Stop'
+
+        $ipm = '${{ steps.prep_ipm.outputs["alias-path"] }}'
+        if (-not (Test-Path -Path $ipm)) {
+          Write-Error "IPM binary not found on: $ipm"
+          return;
         }
 
     - name: Run ipm init
@@ -42,5 +36,6 @@ runs:
       run: |
         $ErrorActionPreference = 'Stop'
 
+        $ipm = '${{ steps.prep_ipm.outputs["alias-path"] }}'
         Write-Host "Initializing IPM workspace..."
-        ipm init --non-interactive
+        & $ipm init
