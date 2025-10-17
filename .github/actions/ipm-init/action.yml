@@ -5,6 +5,10 @@ inputs:
     description: "Directory where the command should run"
     required: false
     default: "."
+  hide-banner:
+    description: "Hide the IPM CLI banner."
+    required: false
+    default: "false"
   ipm-version:
     description: "Specific IPM version (without 'v'); empty = latest"
     required: false
@@ -12,35 +16,32 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Check if IPM is available
-      id: check-ipm
-      shell: pwsh
-      run: |
-        $ipmFound = Get-Command ipm -ErrorAction SilentlyContinue
-        if ($ipmFound) {
-          "available=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        } else {
-          "available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        }
-
     - name: Setup IPM if not available
-      if: steps.check-ipm.outputs.available == 'false'
-      uses: ipmhubio/ipm-actions/.github/actions/ipm-setup@v1
+      id: prep_ipm
+      uses: ./.github/actions/prep-ipm
       with:
         version: ${{ inputs.ipm-version }}
+        alias-per-version: 'true'
 
     - name: Verify prerequisites
       shell: pwsh
       run: |
-        if (-not (Get-Command ipm -ErrorAction SilentlyContinue)) {
-          Write-Error "ipm not found on PATH after setup attempt."
+        $ErrorActionPreference = 'Stop'
+
+        $ipm = '${{ steps.prep_ipm.outputs.alias_path }}'
+        if (-not (Test-Path -Path $ipm)) {
+          Write-Error "IPM binary not found on: $ipm"
+          return;
         }
 
     - name: Run ipm init
       shell: pwsh
       working-directory: ${{ inputs.working-directory }}
+      env:
+        IPMHUBCLI_BANNER_DISABLED: ${{ inputs.hide-banner == 'true' || inputs.hide-banner == 'TRUE' }}
       run: |
         $ErrorActionPreference = 'Stop'
 
+        $ipm = '${{ steps.prep_ipm.outputs.alias_path }}'
         Write-Host "Initializing IPM workspace..."
-        ipm init --non-interactive
+        & $ipm init

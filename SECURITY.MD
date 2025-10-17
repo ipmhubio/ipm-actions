@@ -41,10 +41,10 @@ Use specific version tags or SHA references for production workflows:
 
 ```yaml
 # Recommended: use specific version
-uses: ipmhubio/ipm-actions/.github/actions/ipm-setup@v1.0.0
+uses: ipmhubio/ipm-actions/.github/actions/ipm-sync@v1
 
 # Or: pin to specific commit
-uses: ipmhubio/ipm-actions/.github/actions/ipm-setup@abc123...
+uses: ipmhubio/ipm-actions/.github/actions/ipm-sync@abc123...
 ```
 
 ### Review Workflow Logs

@@ -36,13 +36,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1) Setup IPM (from this same repo)
-      - name: Setup IPM
-        uses: ipmhubio/ipm-actions/.github/actions/ipm-setup@v1
-        with:
-          version: ${{ github.event.inputs.version || '' }}
-          alias-name: "ipm"
-
       # Sync workspace (positionals built from package-names)
       - name: IPM sync
         uses: ./.github/actions/ipm-sync
@@ -50,6 +43,7 @@ jobs:
           working-directory: ./workspaces/workspace1
           sync-mode: ${{ github.event.inputs.sync-mode || 'KeepAllChanges' }}
           package-names: ${{ github.event.inputs.package-names || '' }}
+          ipm-version: ${{ github.event.inputs.version || '' }}
         env:
           IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
 
@@ -58,6 +52,7 @@ jobs:
         uses: ./.github/actions/ipm-status
         with:
           working-directory: ./workspaces/workspace2
+          ipm-version: ${{ github.event.inputs.version || '' }}
         env:
           IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
 
@@ -65,3 +60,12 @@ jobs:
         uses: ./.github/actions/ipm-init
         with:
           working-directory: ./workspaces/workspace3
+          hide-banner: 'true'
+          ipm-version: ${{ github.event.inputs.version || '' }}
+
+      - name: IPM init specific version
+        uses: ./.github/actions/ipm-init
+        with:
+          working-directory: ./workspaces/workspace4
+          hide-banner: 'true'
+          ipm-version: '0.12.0'

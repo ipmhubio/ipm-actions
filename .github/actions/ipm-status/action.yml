@@ -2,44 +2,42 @@ name: "IPM Status Workspace"
 description: "Checks the status of an existing IPM workspace in the given workingfolder."
 inputs:
   working-directory:
-    description: "Directory where the command should run"
+    description: "Directory where the command should run."
     required: false
     default: "."
   package-name:
     description: "A single specific package name that should be synchronized."
     required: false
     default: ""
+  hide-banner:
+    description: "Hide the IPM CLI banner."
+    required: false
+    default: "false"
   ipm-version:
-    description: "Specific IPM version (without 'v'); empty = latest"
+    description: "Specific IPM version (without 'v'); empty = latest."
     required: false
     default: ""
 runs:
   using: "composite"
   steps:
-    - name: Check if IPM is available
-      id: check-ipm
-      shell: pwsh
-      run: |
-        $ipmFound = Get-Command ipm -ErrorAction SilentlyContinue
-        if ($ipmFound) {
-          "available=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        } else {
-          "available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        }
-
     - name: Setup IPM if not available
-      if: steps.check-ipm.outputs.available == 'false' || inputs.ipm-version != ''
-      uses: ipmhubio/ipm-actions/.github/actions/ipm-setup@v1
+      id: prep_ipm
+      uses: ./.github/actions/prep-ipm
       with:
         version: ${{ inputs.ipm-version }}
+        alias-per-version: 'true'
 
     - name: Verify prerequisites
       shell: pwsh
       env:
         IPM_CLIENT_SECRETS: ${{ env.IPM_CLIENT_SECRETS }}      
       run: |
-        if (-not (Get-Command ipm -ErrorAction SilentlyContinue)) {
-          Write-Error "ipm not found on PATH after setup attempt."
+        $ErrorActionPreference = 'Stop'
+
+        $ipm = '${{ steps.prep_ipm.outputs.alias_path }}'
+        if (-not (Test-Path -Path $ipm)) {
+          Write-Error "IPM binary not found on: $ipm"
+          return;
         }
 
         if ([String]::IsNullOrEmpty($env:IPM_CLIENT_SECRETS)) {
@@ -51,9 +49,11 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         IPM_CLIENT_SECRETS: ${{ env.IPM_CLIENT_SECRETS }}
+        IPMHUBCLI_BANNER_DISABLED: ${{ inputs.hide-banner == 'true' || inputs.hide-banner == 'TRUE' }}
       run: |
         $ErrorActionPreference = 'Stop'
 
+        $ipm = '${{ steps.prep_ipm.outputs.alias_path }}'
         # Build argument list
         $args = @('--non-interactive')
 
@@ -68,7 +68,7 @@ runs:
 
         Write-Host "Starting IPM status with selected options..."
         if ($pkgArgs.Count -gt 0) {
-          ipm status @args @pkgArgs
+          & $ipm status @args @pkgArgs
         } else {
-          ipm status @args
+          & $ipm status @args
         }
