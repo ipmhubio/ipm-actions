@@ -1,4 +1,4 @@
-name: Test IPM Composite Actions
+name: Test IPM Composite Actions with Auto Install
 
 on:
   push:
@@ -43,7 +43,6 @@ jobs:
           working-directory: ./workspaces/workspace1
           sync-mode: ${{ github.event.inputs.sync-mode || 'KeepAllChanges' }}
           package-names: ${{ github.event.inputs.package-names || '' }}
-          ipm-version: ${{ github.event.inputs.version || '' }}
         env:
           IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
 
@@ -52,7 +51,14 @@ jobs:
         uses: ./.github/actions/ipm-status
         with:
           working-directory: ./workspaces/workspace2
-          ipm-version: ${{ github.event.inputs.version || '' }}
+        env:
+          IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
+          
+      - name: IPM status other version
+        uses: ./.github/actions/ipm-status
+        with:
+          working-directory: ./workspaces/workspace2
+          ipm-version: '0.10.0'
         env:
           IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
 
@@ -60,12 +66,3 @@ jobs:
         uses: ./.github/actions/ipm-init
         with:
           working-directory: ./workspaces/workspace3
-          hide-banner: 'true'
-          ipm-version: ${{ github.event.inputs.version || '' }}
-
-      - name: IPM init specific version
-        uses: ./.github/actions/ipm-init
-        with:
-          working-directory: ./workspaces/workspace4
-          hide-banner: 'true'
-          ipm-version: '0.12.0'

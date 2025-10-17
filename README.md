@@ -12,7 +12,7 @@ IPM is an Infrastructure Package Manager that helps teams share, manage, and dep
 Downloads and installs the IPM CLI for your runner's OS and architecture.
 
 ```yaml
-- uses: ipmhubio/ipm-actions/.github/actions/ipm-setup@v1
+- uses: ipmhubio/ipm-actions/.github/actions/prep-ipm@v1
   with:
     version: ''        # Optional: specific version without 'v' prefix (default: latest)
     alias-name: 'ipm'  # Optional: custom alias (default: 'ipm')
@@ -67,10 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup IPM
-        uses: ipmhubio/ipm-actions/.github/actions/ipm-setup@v1
-      
+            
       - name: Sync packages
         uses: ipmhubio/ipm-actions/.github/actions/ipm-sync@v1
         with:
@@ -92,8 +89,6 @@ jobs:
 ### Initialize a new workspace
 
 ```yaml
-- name: Setup IPM
-  uses: ipmhubio/ipm-actions/.github/actions/ipm-setup@v1
 
 - name: Initialize workspace
   uses: ipmhubio/ipm-actions/.github/actions/ipm-init@v1
@@ -124,7 +119,6 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
-      - uses: ipmhubio/ipm-actions/.github/actions/ipm-setup@v1
       - uses: ipmhubio/ipm-actions/.github/actions/ipm-sync@v1
         env:
           IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}

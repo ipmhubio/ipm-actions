@@ -1,22 +1,47 @@
 name: "IPM Init Workspace"
-description: "Creates a (new) IPM workspace within the given workingfolder."
+description: "Initialize a new IPM workspace in the given working folder."
 inputs:
   working-directory:
     description: "Directory where the command should run"
     required: false
     default: "."
+  hide-banner:
+    description: "Hide the IPM CLI banner."
+    required: false
+    default: "false"
+  ipm-version:
+    description: "Specific IPM version (without 'v'); empty = latest"
+    required: false
+    default: ""
 runs:
   using: "composite"
   steps:
+    - name: Setup IPM if not available
+      id: prep_ipm
+      uses: ./.github/actions/prep-ipm
+      with:
+        version: ${{ inputs.ipm-version }}
+        alias-per-version: 'true'
+
     - name: Verify prerequisites
       shell: pwsh
       run: |
-        if (-not (Get-Command ipm -ErrorAction SilentlyContinue)) {
-          Write-Error "ipm not found on PATH. Run setup-ipm first."
+        $ErrorActionPreference = 'Stop'
+
+        $ipm = '${{ steps.prep_ipm.outputs.alias_path }}'
+        if (-not (Test-Path -Path $ipm)) {
+          Write-Error "IPM binary not found on: $ipm"
+          return;
         }
 
     - name: Run ipm init
       shell: pwsh
       working-directory: ${{ inputs.working-directory }}
+      env:
+        IPMHUBCLI_BANNER_DISABLED: ${{ inputs.hide-banner == 'true' || inputs.hide-banner == 'TRUE' }}
       run: |
-        ipm init
+        $ErrorActionPreference = 'Stop'
+
+        $ipm = '${{ steps.prep_ipm.outputs.alias_path }}'
+        Write-Host "Initializing IPM workspace..."
+        & $ipm init
