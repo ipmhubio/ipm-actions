@@ -43,7 +43,6 @@ jobs:
           working-directory: ./workspaces/workspace1
           sync-mode: ${{ github.event.inputs.sync-mode || 'KeepAllChanges' }}
           package-names: ${{ github.event.inputs.package-names || '' }}
-          hide-banner: 'true'
           ipm-version: ${{ github.event.inputs.version || '' }}
         env:
           IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
@@ -53,7 +52,6 @@ jobs:
         uses: ./.github/actions/ipm-status
         with:
           working-directory: ./workspaces/workspace2
-          hide-banner: 'true'
           ipm-version: ${{ github.event.inputs.version || '' }}
         env:
           IPM_CLIENT_SECRETS: ${{ secrets.IPM_CLIENT_SECRETS }}
@@ -64,3 +62,10 @@ jobs:
           working-directory: ./workspaces/workspace3
           hide-banner: 'true'
           ipm-version: ${{ github.event.inputs.version || '' }}
+
+      - name: IPM init specific version
+        uses: ./.github/actions/ipm-init
+        with:
+          working-directory: ./workspaces/workspace3
+          hide-banner: 'true'
+          ipm-version: '0.12.0'
