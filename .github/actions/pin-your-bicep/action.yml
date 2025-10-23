@@ -36,7 +36,7 @@ runs:
         # Validate given desired. It should be a version or 'latest'.
         if ([string]::IsNullOrWhiteSpace($Desired) -or -not($Desired -match '^(?i:latest)$' -or $Desired -match '\d+\.\d+\.\d+')) {
           "installed=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "resolved-version=latest" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "resolved_version=latest" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "path=" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           Write-Error "Invalid Bicep version requested."
           exit 1
