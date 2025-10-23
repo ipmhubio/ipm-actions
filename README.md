@@ -8,6 +8,16 @@ IPM is an Infrastructure Package Manager that helps teams share, manage, and dep
 
 ## Available Actions
 
+### pin-your-bicep
+Downloads and installs the latest BICEP binary, specifically for your agent platform. If the requested version is already available within the\
+agent's path, it will be skipped. The BICEP binary will be exposed to the PATH environment so that it is available from other steps.\
+You can pin a specific version or choose 'latest' (default) which will retrieve the latest version from GitHub.
+
+```yaml
+- uses: ipmhubio/ipm-actions/.github/actions/pin-your-bicep@v1
+  with:
+    version: ''        # Optional: specific version (with or without the 'v' prefix) (default: latest)
+
 ### setup-ipm
 Downloads and installs the IPM CLI for your runner's OS and architecture.
 

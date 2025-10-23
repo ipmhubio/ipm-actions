@@ -1,0 +1,123 @@
+name: "Pin a specific BICEP version"
+description: "Install and pin a specific Bicep CLI version across OSes. Skips when the requested version is already present on the agent."
+inputs:
+  version:
+    description: "Either 'latest' or a specific version (with or without leading 'v'), e.g. '0.38.3' or 'v0.38.3'."
+    required: false
+    default: "latest"
+outputs:
+  installed:
+    description: "true if the action downloaded Bicep; false otherwise."
+    value: ${{ steps.set.outputs.installed }}
+  resolved_version:
+    description: "Desired version after normalization (no leading 'v')."
+    value: ${{ steps.set.outputs.resolved_version }}
+  path:
+    description: "Install directory added to PATH (if installed)."
+    value: ${{ steps.set.outputs.path }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: set
+      name: "Ensure pinned Bicep"
+      shell: pwsh
+      run: |
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+
+        if ($env:ACTIONS_STEP_DEBUG -and ($env:ACTIONS_STEP_DEBUG.ToString() -match '^(?i:true|1|yes|on)$')) {
+          $VerbosePreference = 'Continue'
+        }
+
+        # Normalize desired version
+        $Desired = '${{ inputs.version }}'.Trim().TrimStart('v','V')
+
+        # Validate given desired. It should be a version or 'latest'.
+        if ([string]::IsNullOrWhiteSpace($Desired) -or -not($Desired -match '^(?i:latest)$' -or $Desired -match '\d+\.\d+\.\d+')) {
+          "installed=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "resolved_version=latest" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "path=" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Error "Invalid Bicep version requested."
+          exit 1
+        }
+
+        # Detect latest available BICEP online
+        $LatestVersionOnline = $null
+        try {
+          $BicepRes = Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/Azure/bicep/releases/latest" -MaximumRedirection 0 -Method Head -TimeoutSec 2 -SkipHttpErrorCheck -ErrorAction "SilentlyContinue"
+          $LatestVersionOnline = ($BicepRes.Headers.Location -split "/" | Select-Object -Last 1).TrimStart('v', 'V')
+        } catch {}
+        
+        if ($Desired -eq "latest") {
+          $Desired = $LatestVersionOnline
+        }
+
+        # Detect current version
+        $Existing = $null
+        try {
+          $v = & bicep --version 2>$null
+          if ($v) {
+            $m = [regex]::Match($v, '\d+\.\d+\.\d+')
+            if ($m.Success) { $Existing = $m.Value }
+          }
+        } catch {}
+
+        Write-Host "Existing bicep: $($Existing ?? '<none>')"
+        if ($Existing -eq $Desired) {
+          Write-Host "Desired Bicep '$Desired' already present. Skipping install."
+          "installed=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "resolved_version=$Desired" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "path=" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          exit 0
+        }
+
+        $TempFolder = $env:RUNNER_TEMP ?? $env:TMPDIR ?? $env:TEMP ?? $env:TMP ?? [System.IO.Path]::GetTempPath()
+        $InstallDir = Join-Path -Path $TempFolder -ChildPath 'bicepcli'
+        New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+
+        # OS / Arch detection
+        $isWin = (Get-Variable IsWindows -ErrorAction SilentlyContinue)?.Value
+        $isLin = (Get-Variable IsLinux   -ErrorAction SilentlyContinue)?.Value
+        $isMac = (Get-Variable IsMacOS   -ErrorAction SilentlyContinue)?.Value
+        if ($null -eq $isWin) {
+          $isWin = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Windows)
+          $isLin = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Linux)
+          $isMac = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::OSX)
+        }
+
+        $arch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLower() # x64, arm64, etc.
+        switch -Regex ("$($isWin),$($isLin),$($isMac),$arch") {
+          '^True,False,False,arm64$' { $asset='bicep-win-arm64.exe';  $bin='bicep.exe'; break }
+          '^True,False,False,.*$'    { $asset='bicep-win-x64.exe';    $bin='bicep.exe'; break }
+          '^False,True,False,arm64$' { $asset='bicep-linux-arm64';    $bin='bicep';     break }
+          '^False,True,False,.*$'    { $asset='bicep-linux-x64';      $bin='bicep';     break }
+          '^False,False,True,arm64$' { $asset='bicep-osx-arm64';      $bin='bicep';     break }
+          '^False,False,True,.*$'    { $asset='bicep-osx-x64';        $bin='bicep';     break }
+          default { throw "Unsupported OS/arch." }
+        }
+
+        $OutFile = Join-Path -Path $InstallDir -ChildPath $bin
+        $Uri     = "https://github.com/Azure/bicep/releases/download/v{0}/{1}" -f $Desired, $asset
+
+        "Installing Bicep 'v{0}' from '{1}'..." -f $Desired, $Uri | Write-Host 
+        try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
+        Invoke-WebRequest -Uri $Uri -OutFile $OutFile
+        if (-not $isWin) { chmod +x $OutFile }
+
+        # Add to PATH for subsequent steps + current process
+        $InstallDir | Out-File -FilePath $env:GITHUB_PATH -Append
+        $env:PATH = "{0}{1}{2}" -f $InstallDir, $([IO.Path]::PathSeparator), $env:PATH
+
+        # Verify
+        $afterRaw = & $OutFile --version
+        Write-Host "Bicep now: $afterRaw"
+        $afterVer = ([regex]::Match($afterRaw, '\d+\.\d+\.\d+')).Value
+        if ($afterVer -ne $Desired) {
+          throw "Version mismatch. Expected $Desired, got '$afterRaw'."
+        }
+
+        # Outputs
+        "installed=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        "resolved_version=$Desired" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        "path=$InstallDir" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
