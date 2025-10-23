@@ -16,7 +16,7 @@ You can pin a specific version or choose 'latest' (default) which will retrieve 
 ```yaml
 - uses: ipmhubio/ipm-actions/.github/actions/pin-your-bicep@v1
   with:
-    version: ''        # Optional: specific version (with our without the 'v' prefix) (default: latest)
+    version: ''        # Optional: specific version (with or without the 'v' prefix) (default: latest)
 
 ### setup-ipm
 Downloads and installs the IPM CLI for your runner's OS and architecture.
